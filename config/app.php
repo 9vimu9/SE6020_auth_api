@@ -3,6 +3,11 @@
 use Illuminate\Support\Facades\Facade;
 
 return [
+    'roles' => [
+        "admin" => 0,
+        "fuel_station" => 1,
+        "user" => 2
+    ],
 
     /*
     |--------------------------------------------------------------------------
