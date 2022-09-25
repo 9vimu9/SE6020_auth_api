@@ -24,4 +24,5 @@ Route::group(['middleware' => 'api', 'prefix' => 'auth'
     Route::post('logout', [AuthController::class, 'logout']);
     Route::post('refresh', [AuthController::class, 'refresh']);
     Route::post('me', [AuthController::class, 'me']);
+    Route::post('validate', [AuthController::class, 'validateToken']);
 });

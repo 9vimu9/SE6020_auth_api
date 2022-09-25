@@ -13,7 +13,7 @@ class AuthController extends Controller
      */
     public function __construct()
     {
-        $this->middleware('auth:api', ['except' => ['login']]);
+        $this->middleware('auth:api', ['except' => ['login', 'validateToken']]);
     }
 
     /**
@@ -73,10 +73,29 @@ class AuthController extends Controller
      */
     protected function respondWithToken(string $token): JsonResponse
     {
+        return response()->json($this->accessTokenDataArray($token));
+    }
+
+
+    public function validateToken(): JsonResponse
+    {
+        $authCheck = auth()->check();
+        if (!$authCheck) {
+            return response()->json(['valid' => false]);
+        }
         return response()->json([
+            'valid' => true,
+            "token" => $this->accessTokenDataArray(auth()->refresh())
+        ]);
+
+    }
+
+    private function accessTokenDataArray(string $token): array
+    {
+        return [
             'access_token' => $token,
             'token_type' => 'bearer',
             'expires_in' => auth()->factory()->getTTL() * 60
-        ]);
+        ];
     }
 }
