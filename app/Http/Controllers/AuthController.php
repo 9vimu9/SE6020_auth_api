@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Services\MicroServiceToken\TokenIssuer;
 use Illuminate\Http\JsonResponse;
 
 class AuthController extends Controller
@@ -77,15 +78,19 @@ class AuthController extends Controller
     }
 
 
+    /**
+     * @throws \Exception
+     */
     public function validateToken(): JsonResponse
     {
         $authCheck = auth()->check();
         if (!$authCheck) {
             return response()->json(['valid' => false]);
         }
+        $microServiceToken = (new TokenIssuer())->issue();
         return response()->json([
             'valid' => true,
-            "token" => $this->accessTokenDataArray(auth()->refresh())
+            "token" => $this->accessTokenDataArray($microServiceToken)
         ]);
 
     }
