@@ -35,6 +35,8 @@ services:
             - ./:/var/www
         networks:
             - docker_app_network
+        depends_on:
+            - app
 
     #MySQL Service
     db:
@@ -51,7 +53,8 @@ services:
             MYSQL_ROOT_PASSWORD: root
         networks:
             - docker_app_network
-
+        depends_on:
+            - app
 #Docker Networks
 networks:
     docker_app_network:
