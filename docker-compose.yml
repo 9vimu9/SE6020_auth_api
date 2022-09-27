@@ -7,11 +7,9 @@ services:
             context: .
             dockerfile: docker/Dockerfiles/php/Dockerfile
         image: 9wimu9/auth-app-php
-        container_name: docker_app
         restart: unless-stopped
         tty: true
         environment:
-            SERVICE_NAME: docker_app
             SERVICE_TAGS: dev
         working_dir: /var/www
         volumes:
