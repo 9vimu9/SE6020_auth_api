@@ -6,7 +6,7 @@ services:
         build:
             context: .
             dockerfile: docker/Dockerfiles/php/Dockerfile
-        image: 9wimu9/php
+        image: 9wimu9/auth-app-php
         container_name: docker_app
         restart: unless-stopped
         tty: true
@@ -16,13 +16,15 @@ services:
         working_dir: /var/www
         volumes:
             - ./:/var/www
-            - ./docker/php/local.ini:/usr/local/etc/php/conf.d/local.ini
         networks:
             - docker_app_network
 
     #Nginx Service
     webserver:
-        image: 9wimu9/nginx
+        image: 9wimu9/auth-app-webserver
+        build:
+            context: .
+            dockerfile: docker/Dockerfiles/nginx/Dockerfile
         container_name: docker_app_webserver
         restart: unless-stopped
         tty: true
@@ -31,13 +33,15 @@ services:
             - "445:443"
         volumes:
             - ./:/var/www
-            - ./docker/nginx/conf.d/:/etc/nginx/conf.d/
         networks:
             - docker_app_network
 
     #MySQL Service
     db:
-        image: 9wimu9/mysql
+        image: 9wimu9/auth-app-db
+        build:
+            context: .
+            dockerfile: docker/Dockerfiles/mysql/Dockerfile
         container_name: docker_app_mysql_server
         restart: unless-stopped
         tty: true
@@ -45,10 +49,6 @@ services:
             - "3318:3306"
         environment:
             MYSQL_ROOT_PASSWORD: root
-        volumes:
-            - dbdata:/var/lib/mysql/
-            - ./docker/mysql/my.cnf:/etc/mysql/my.cnf
-            - ./docker/mysql/mysql-files:/var/lib/mysql-files
         networks:
             - docker_app_network
 
