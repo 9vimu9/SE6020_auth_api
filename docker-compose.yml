@@ -27,3 +27,17 @@ services:
       - './:/app'
     depends_on:
       - mariadb
+
+
+#        #https://github.com/aws/aws-cli/issues/6242#issuecomment-1079214960
+#      aws ecs update-service --cluster auth-api --service auth-api-MyappService-HLgLJ0GHOtRu --region us-east-1 --enable-execute-command --force-new-deployment
+#    aws ecs execute-command  \
+#    --region us-east-1 \
+#    --cluster auth-api \
+#    --task f574670275414f0aa173b493cfb4ad51 \
+#    --container  myapp \
+#    --command "/bin/bash" \
+#    --interactive
+
+
+
