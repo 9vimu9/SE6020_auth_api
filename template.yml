@@ -1,0 +1,389 @@
+AWSTemplateFormatVersion: 2010-09-09
+Resources:
+  CloudMap:
+    Properties:
+      Description: Service Map for Docker Compose project auth-api
+      Name: auth-api.local
+      Vpc: vpc-0def533f2315e89fe
+    Type: AWS::ServiceDiscovery::PrivateDnsNamespace
+  Cluster:
+    Properties:
+      ClusterName: auth-api
+      Tags:
+        - Key: com.docker.compose.project
+          Value: auth-api
+    Type: AWS::ECS::Cluster
+  Default3306Ingress:
+    Properties:
+      CidrIp: 0.0.0.0/0
+      Description: mariadb:3306/tcp on default network
+      FromPort: 3306
+      GroupId:
+        Ref: DefaultNetwork
+      IpProtocol: TCP
+      ToPort: 3306
+    Type: AWS::EC2::SecurityGroupIngress
+  Default8000Ingress:
+    Properties:
+      CidrIp: 0.0.0.0/0
+      Description: myapp:8000/tcp on default network
+      FromPort: 8000
+      GroupId:
+        Ref: DefaultNetwork
+      IpProtocol: TCP
+      ToPort: 8000
+    Type: AWS::EC2::SecurityGroupIngress
+  DefaultNetwork:
+    Properties:
+      GroupDescription: auth-api Security Group for default network
+      Tags:
+        - Key: com.docker.compose.project
+          Value: auth-api
+        - Key: com.docker.compose.network
+          Value: auth-api_default
+      VpcId: vpc-0def533f2315e89fe
+    Type: AWS::EC2::SecurityGroup
+  DefaultNetworkIngress:
+    Properties:
+      Description: Allow communication within network default
+      GroupId:
+        Ref: DefaultNetwork
+      IpProtocol: "-1"
+      SourceSecurityGroupId:
+        Ref: DefaultNetwork
+    Type: AWS::EC2::SecurityGroupIngress
+  LoadBalancer:
+    Properties:
+      LoadBalancerAttributes:
+        - Key: load_balancing.cross_zone.enabled
+          Value: "true"
+      Scheme: internet-facing
+      Subnets:
+        - subnet-0849b849ea31cdf6e
+        - subnet-04d18faded5ffd463
+        - subnet-0d01464d1b103e490
+        - subnet-02533b792b8a25c63
+        - subnet-0f9ddea6e858210a6
+        - subnet-0d8b8aa7a701c2c21
+      Tags:
+        - Key: com.docker.compose.project
+          Value: auth-api
+      Type: network
+    Type: AWS::ElasticLoadBalancingV2::LoadBalancer
+  LogGroup:
+    Properties:
+      LogGroupName: /docker-compose/auth-api
+    Type: AWS::Logs::LogGroup
+  MariadbService:
+    DependsOn:
+      - MariadbTCP3306Listener
+    Properties:
+      Cluster:
+        Fn::GetAtt:
+          - Cluster
+          - Arn
+      DeploymentConfiguration:
+        MaximumPercent: 200
+        MinimumHealthyPercent: 100
+      DeploymentController:
+        Type: ECS
+      DesiredCount: 1
+      LaunchType: FARGATE
+      LoadBalancers:
+        - ContainerName: mariadb
+          ContainerPort: 3306
+          TargetGroupArn:
+            Ref: MariadbTCP3306TargetGroup
+      NetworkConfiguration:
+        AwsvpcConfiguration:
+          AssignPublicIp: ENABLED
+          SecurityGroups:
+            - Ref: DefaultNetwork
+          Subnets:
+            - subnet-0849b849ea31cdf6e
+            - subnet-04d18faded5ffd463
+            - subnet-0d01464d1b103e490
+            - subnet-02533b792b8a25c63
+            - subnet-0f9ddea6e858210a6
+            - subnet-0d8b8aa7a701c2c21
+      PlatformVersion: 1.4.0
+      PropagateTags: SERVICE
+      SchedulingStrategy: REPLICA
+      ServiceRegistries:
+        - RegistryArn:
+            Fn::GetAtt:
+              - MariadbServiceDiscoveryEntry
+              - Arn
+      Tags:
+        - Key: com.docker.compose.project
+          Value: auth-api
+        - Key: com.docker.compose.service
+          Value: mariadb
+      TaskDefinition:
+        Ref: MariadbTaskDefinition
+    Type: AWS::ECS::Service
+  MariadbServiceDiscoveryEntry:
+    Properties:
+      Description: '"mariadb" service discovery entry in Cloud Map'
+      DnsConfig:
+        DnsRecords:
+          - TTL: 60
+            Type: A
+        RoutingPolicy: MULTIVALUE
+      HealthCheckCustomConfig:
+        FailureThreshold: 1
+      Name: mariadb
+      NamespaceId:
+        Ref: CloudMap
+    Type: AWS::ServiceDiscovery::Service
+  MariadbTCP3306Listener:
+    Properties:
+      DefaultActions:
+        - ForwardConfig:
+            TargetGroups:
+              - TargetGroupArn:
+                  Ref: MariadbTCP3306TargetGroup
+          Type: forward
+      LoadBalancerArn:
+        Ref: LoadBalancer
+      Port: 3306
+      Protocol: TCP
+    Type: AWS::ElasticLoadBalancingV2::Listener
+  MariadbTCP3306TargetGroup:
+    Properties:
+      Port: 3306
+      Protocol: TCP
+      Tags:
+        - Key: com.docker.compose.project
+          Value: auth-api
+      TargetType: ip
+      VpcId: vpc-0def533f2315e89fe
+    Type: AWS::ElasticLoadBalancingV2::TargetGroup
+  MariadbTaskDefinition:
+    Properties:
+      ContainerDefinitions:
+        - Command:
+            - us-east-1.compute.internal
+            - auth-api.local
+          Essential: false
+          Image: docker/ecs-searchdomain-sidecar:1.0
+          LogConfiguration:
+            LogDriver: awslogs
+            Options:
+              awslogs-group:
+                Ref: LogGroup
+              awslogs-region:
+                Ref: AWS::Region
+              awslogs-stream-prefix: auth-api
+          Name: Mariadb_ResolvConf_InitContainer
+        - DependsOn:
+            - Condition: SUCCESS
+              ContainerName: Mariadb_ResolvConf_InitContainer
+          Environment:
+            - Name: MARIADB_ROOT_PASSWORD
+              Value: root
+          Essential: true
+          HealthCheck:
+            Command:
+              - CMD
+              - /opt/bitnami/scripts/mariadb/healthcheck.sh
+            Interval: 15
+            Retries: 6
+            Timeout: 5
+          Image: docker.io/9wimu9/auth-api-mariadb:1@sha256:29533cac3db849f799cacc1f4f881f3baf8e420fc2c174f2211b3d1affce6358
+          LinuxParameters: {}
+          LogConfiguration:
+            LogDriver: awslogs
+            Options:
+              awslogs-group:
+                Ref: LogGroup
+              awslogs-region:
+                Ref: AWS::Region
+              awslogs-stream-prefix: auth-api
+          Name: mariadb
+          PortMappings:
+            - ContainerPort: 3306
+              HostPort: 3306
+              Protocol: tcp
+      Cpu: "256"
+      ExecutionRoleArn:
+        Ref: MariadbTaskExecutionRole
+      Family: auth-api-mariadb
+      Memory: "512"
+      NetworkMode: awsvpc
+      RequiresCompatibilities:
+        - FARGATE
+    Type: AWS::ECS::TaskDefinition
+  MariadbTaskExecutionRole:
+    Properties:
+      AssumeRolePolicyDocument:
+        Statement:
+          - Action:
+              - sts:AssumeRole
+            Condition: {}
+            Effect: Allow
+            Principal:
+              Service: ecs-tasks.amazonaws.com
+        Version: 2012-10-17
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/service-role/AmazonECSTaskExecutionRolePolicy
+        - arn:aws:iam::aws:policy/AmazonEC2ContainerRegistryReadOnly
+        - arn:aws:iam::931838733925:policy/ecs-exec-required-iam-policy
+      Tags:
+        - Key: com.docker.compose.project
+          Value: auth-api
+        - Key: com.docker.compose.service
+          Value: mariadb
+    Type: AWS::IAM::Role
+  MyappService:
+    DependsOn:
+      - MyappTCP8000Listener
+      - MariadbService
+    Properties:
+      Cluster:
+        Fn::GetAtt:
+          - Cluster
+          - Arn
+      DeploymentConfiguration:
+        MaximumPercent: 200
+        MinimumHealthyPercent: 100
+      DeploymentController:
+        Type: ECS
+      DesiredCount: 1
+      LaunchType: FARGATE
+      LoadBalancers:
+        - ContainerName: myapp
+          ContainerPort: 8000
+          TargetGroupArn:
+            Ref: MyappTCP8000TargetGroup
+      NetworkConfiguration:
+        AwsvpcConfiguration:
+          AssignPublicIp: ENABLED
+          SecurityGroups:
+            - Ref: DefaultNetwork
+          Subnets:
+            - subnet-0849b849ea31cdf6e
+            - subnet-04d18faded5ffd463
+            - subnet-0d01464d1b103e490
+            - subnet-02533b792b8a25c63
+            - subnet-0f9ddea6e858210a6
+            - subnet-0d8b8aa7a701c2c21
+      PlatformVersion: 1.4.0
+      PropagateTags: SERVICE
+      SchedulingStrategy: REPLICA
+      ServiceRegistries:
+        - RegistryArn:
+            Fn::GetAtt:
+              - MyappServiceDiscoveryEntry
+              - Arn
+      Tags:
+        - Key: com.docker.compose.project
+          Value: auth-api
+        - Key: com.docker.compose.service
+          Value: myapp
+      TaskDefinition:
+        Ref: MyappTaskDefinition
+    Type: AWS::ECS::Service
+  MyappServiceDiscoveryEntry:
+    Properties:
+      Description: '"myapp" service discovery entry in Cloud Map'
+      DnsConfig:
+        DnsRecords:
+          - TTL: 60
+            Type: A
+        RoutingPolicy: MULTIVALUE
+      HealthCheckCustomConfig:
+        FailureThreshold: 1
+      Name: myapp
+      NamespaceId:
+        Ref: CloudMap
+    Type: AWS::ServiceDiscovery::Service
+  MyappTCP8000Listener:
+    Properties:
+      DefaultActions:
+        - ForwardConfig:
+            TargetGroups:
+              - TargetGroupArn:
+                  Ref: MyappTCP8000TargetGroup
+          Type: forward
+      LoadBalancerArn:
+        Ref: LoadBalancer
+      Port: 8000
+      Protocol: TCP
+    Type: AWS::ElasticLoadBalancingV2::Listener
+  MyappTCP8000TargetGroup:
+    Properties:
+      Port: 8000
+      Protocol: TCP
+      Tags:
+        - Key: com.docker.compose.project
+          Value: auth-api
+      TargetType: ip
+      VpcId: vpc-0def533f2315e89fe
+    Type: AWS::ElasticLoadBalancingV2::TargetGroup
+  MyappTaskDefinition:
+    Properties:
+      ContainerDefinitions:
+        - Command:
+            - us-east-1.compute.internal
+            - auth-api.local
+          Essential: false
+          Image: docker/ecs-searchdomain-sidecar:1.0
+          LogConfiguration:
+            LogDriver: awslogs
+            Options:
+              awslogs-group:
+                Ref: LogGroup
+              awslogs-region:
+                Ref: AWS::Region
+              awslogs-stream-prefix: auth-api
+          Name: Myapp_ResolvConf_InitContainer
+        - DependsOn:
+            - Condition: SUCCESS
+              ContainerName: Myapp_ResolvConf_InitContainer
+          Essential: true
+          Image: docker.io/9wimu9/auth-api-myapp:1@sha256:e435360bcc88355e067e602fc3d47e33e9aa678f21a88f812bfb77ee06800755
+          LinuxParameters: {}
+          LogConfiguration:
+            LogDriver: awslogs
+            Options:
+              awslogs-group:
+                Ref: LogGroup
+              awslogs-region:
+                Ref: AWS::Region
+              awslogs-stream-prefix: auth-api
+          Name: myapp
+          PortMappings:
+            - ContainerPort: 8000
+              HostPort: 8000
+              Protocol: tcp
+      Cpu: "256"
+      ExecutionRoleArn:
+        Ref: MyappTaskExecutionRole
+      Family: auth-api-myapp
+      Memory: "512"
+      NetworkMode: awsvpc
+      RequiresCompatibilities:
+        - FARGATE
+    Type: AWS::ECS::TaskDefinition
+  MyappTaskExecutionRole:
+    Properties:
+      AssumeRolePolicyDocument:
+        Statement:
+          - Action:
+              - sts:AssumeRole
+            Condition: {}
+            Effect: Allow
+            Principal:
+              Service: ecs-tasks.amazonaws.com
+        Version: 2012-10-17
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/service-role/AmazonECSTaskExecutionRolePolicy
+        - arn:aws:iam::aws:policy/AmazonEC2ContainerRegistryReadOnly
+        - arn:aws:iam::931838733925:policy/ecs-exec-required-iam-policy
+      Tags:
+        - Key: com.docker.compose.project
+          Value: auth-api
+        - Key: com.docker.compose.service
+          Value: myapp
+    Type: AWS::IAM::Role
