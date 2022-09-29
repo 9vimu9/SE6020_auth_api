@@ -35,7 +35,7 @@ services:
 #    aws ecs execute-command  \
 #    --region us-east-1 \
 #    --cluster auth-api \
-#    --task 9513918830e145ad8a02ce48e9c09fe5 \
+#    --task 9b588e0c210748c6baf29ba23b0634eb \
 #    --container  myapp \
 #    --command "/bin/bash" \
 #    --interactive
