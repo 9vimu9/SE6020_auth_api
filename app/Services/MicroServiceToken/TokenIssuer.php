@@ -30,7 +30,7 @@ class TokenIssuer
             ->issuedBy(config('app.url'))
             ->identifiedBy(md5(mt_rand() . time()))
             ->issuedAt($now)
-            ->canOnlyBeUsedAfter($now->modify('+1 second'))
+            ->canOnlyBeUsedAfter($now->modify('+0 second'))
             ->expiresAt($now->modify('+' . config('microservice_token.ttl') . ' minute'))
             ->withClaim('user_id', $user->id)
             ->withClaim('role', $user->role)
