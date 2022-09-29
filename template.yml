@@ -190,7 +190,7 @@ Resources:
             Interval: 15
             Retries: 6
             Timeout: 5
-          Image: docker.io/9wimu9/auth-api-mariadb:1@sha256:29533cac3db849f799cacc1f4f881f3baf8e420fc2c174f2211b3d1affce6358
+          Image: docker.io/9wimu9/auth-api-mariadb2:latest@sha256:29533cac3db849f799cacc1f4f881f3baf8e420fc2c174f2211b3d1affce6358
           LinuxParameters: {}
           LogConfiguration:
             LogDriver: awslogs
@@ -228,7 +228,6 @@ Resources:
       ManagedPolicyArns:
         - arn:aws:iam::aws:policy/service-role/AmazonECSTaskExecutionRolePolicy
         - arn:aws:iam::aws:policy/AmazonEC2ContainerRegistryReadOnly
-        - arn:aws:iam::931838733925:policy/ecs-exec-required-iam-policy
       Tags:
         - Key: com.docker.compose.project
           Value: auth-api
@@ -342,7 +341,7 @@ Resources:
             - Condition: SUCCESS
               ContainerName: Myapp_ResolvConf_InitContainer
           Essential: true
-          Image: docker.io/9wimu9/auth-api-myapp:1@sha256:e435360bcc88355e067e602fc3d47e33e9aa678f21a88f812bfb77ee06800755
+          Image: docker.io/9wimu9/auth-api-myapp2:latest@sha256:7df90d61b360ff09cbbd7247b6662662868430ca5b977881ebd2f38474d8648e
           LinuxParameters: {}
           LogConfiguration:
             LogDriver: awslogs
