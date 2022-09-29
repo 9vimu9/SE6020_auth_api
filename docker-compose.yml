@@ -28,7 +28,8 @@ services:
     depends_on:
       - mariadb
 
-#http://auth-loadb-5rvmh5xbgme4-58c4387b8bb2d7a6.elb.us-east-1.amazonaws.com:8000
+#auth-LoadB-1FRA2XQ42LLW-82543b575d8e49f3.elb.us-east-1.amazonaws.com:8000
+#auth-LoadB-1FRA2XQ42LLW-82543b575d8e49f3.elb.us-east-1.amazonaws.com:3306
 #        #https://github.com/aws/aws-cli/issues/6242#issuecomment-1079214960
 #      aws ecs update-service --cluster auth-api --service auth-api-MyappService-3XxKnaCQnelw --region us-east-1 --enable-execute-command --force-new-deployment
 #    aws ecs execute-command  \
