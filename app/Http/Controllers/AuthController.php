@@ -24,13 +24,18 @@ class AuthController extends Controller
      */
     public function login(): JsonResponse
     {
-        $credentials = request(['email', 'password']);
+        try{
+            $credentials = request(['email', 'password']);
 
-        if (!$token = auth()->attempt($credentials)) {
-            return response()->json(['error' => 'Unauthorized'], 401);
+            if (!$token = auth()->attempt($credentials)) {
+                return response()->json(['error' => 'Unauthorized'], 401);
+            }
+
+            return $this->respondWithToken($token);
+        }catch(\PDOException $exception){
+            return response()->json(["message"=>$exception->getMessage()],500);
         }
 
-        return $this->respondWithToken($token);
     }
 
     /**
