@@ -5,7 +5,7 @@ services:
     build:
       context: .
       dockerfile: Dockerfiles/mariadb/Dockerfile
-    image: 9wimu9/auth-api-mariadb2:latest
+    image: 9wimu9/auth-api-mariadb:latest
     environment:
       MARIADB_ROOT_PASSWORD: root
     healthcheck:
@@ -16,11 +16,11 @@ services:
     ports:
       - '3306:3306'
 
-  myapp:
+  laravel:
     build:
       context: .
       dockerfile: Dockerfiles/php/Dockerfile
-    image: 9wimu9/auth-api-myapp2:latest
+    image: 9wimu9/auth-api-laravel:latest
     ports:
       - '8000:8000'
 #    volumes:
@@ -28,15 +28,14 @@ services:
     depends_on:
       - mariadb
 
-#auth-LoadB-1FRA2XQ42LLW-82543b575d8e49f3.elb.us-east-1.amazonaws.com:8000
-#auth-LoadB-1FRA2XQ42LLW-82543b575d8e49f3.elb.us-east-1.amazonaws.com:3306
+#auth-LoadB-8Q1S44IR2PD9-acbab02087782c5f.elb.us-east-1.amazonaws.com:8000
 #        #https://github.com/aws/aws-cli/issues/6242#issuecomment-1079214960
-#      aws ecs update-service --cluster auth-api --service auth-api-MyappService-3XxKnaCQnelw --region us-east-1 --enable-execute-command --force-new-deployment
+#      aws ecs update-service --cluster auth-api --service auth-api-LaravelService-F5mvrA8hh0PP --region us-east-1 --enable-execute-command --force-new-deployment
 #    aws ecs execute-command  \
 #    --region us-east-1 \
 #    --cluster auth-api \
-#    --task 9b588e0c210748c6baf29ba23b0634eb \
-#    --container  myapp \
+#    --task f862b046607e46498dd652f1a000e7e4 \
+#    --container  laravel \
 #    --command "/bin/bash" \
 #    --interactive
 #

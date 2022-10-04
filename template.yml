@@ -26,7 +26,7 @@ Resources:
   Default8000Ingress:
     Properties:
       CidrIp: 0.0.0.0/0
-      Description: myapp:8000/tcp on default network
+      Description: laravel:8000/tcp on default network
       FromPort: 8000
       GroupId:
         Ref: DefaultNetwork
@@ -190,7 +190,7 @@ Resources:
             Interval: 15
             Retries: 6
             Timeout: 5
-          Image: docker.io/9wimu9/auth-api-mariadb2:latest@sha256:29533cac3db849f799cacc1f4f881f3baf8e420fc2c174f2211b3d1affce6358
+          Image: docker.io/9wimu9/auth-api-mariadb:latest@sha256:5df2fa482bf0ffedd0aa879a6021e8a5dc71cd1f5d18d0e3c706fd07dfd26ac9
           LinuxParameters: {}
           LogConfiguration:
             LogDriver: awslogs
@@ -234,11 +234,12 @@ Resources:
         - Key: com.docker.compose.service
           Value: mariadb
     Type: AWS::IAM::Role
-  MyappService:
+  LaravelService:
     DependsOn:
-      - MyappTCP8000Listener
+      - LaravelTCP8000Listener
       - MariadbService
     Properties:
+      EnableExecuteCommand: true
       Cluster:
         Fn::GetAtt:
           - Cluster
@@ -251,10 +252,10 @@ Resources:
       DesiredCount: 1
       LaunchType: FARGATE
       LoadBalancers:
-        - ContainerName: myapp
+        - ContainerName: laravel
           ContainerPort: 8000
           TargetGroupArn:
-            Ref: MyappTCP8000TargetGroup
+            Ref: LaravelTCP8000TargetGroup
       NetworkConfiguration:
         AwsvpcConfiguration:
           AssignPublicIp: ENABLED
@@ -273,19 +274,19 @@ Resources:
       ServiceRegistries:
         - RegistryArn:
             Fn::GetAtt:
-              - MyappServiceDiscoveryEntry
+              - LaravelServiceDiscoveryEntry
               - Arn
       Tags:
         - Key: com.docker.compose.project
           Value: auth-api
         - Key: com.docker.compose.service
-          Value: myapp
+          Value: laravel
       TaskDefinition:
-        Ref: MyappTaskDefinition
+        Ref: LaravelTaskDefinition
     Type: AWS::ECS::Service
-  MyappServiceDiscoveryEntry:
+  LaravelServiceDiscoveryEntry:
     Properties:
-      Description: '"myapp" service discovery entry in Cloud Map'
+      Description: '"laravel" service discovery entry in Cloud Map'
       DnsConfig:
         DnsRecords:
           - TTL: 60
@@ -293,24 +294,24 @@ Resources:
         RoutingPolicy: MULTIVALUE
       HealthCheckCustomConfig:
         FailureThreshold: 1
-      Name: myapp
+      Name: laravel
       NamespaceId:
         Ref: CloudMap
     Type: AWS::ServiceDiscovery::Service
-  MyappTCP8000Listener:
+  LaravelTCP8000Listener:
     Properties:
       DefaultActions:
         - ForwardConfig:
             TargetGroups:
               - TargetGroupArn:
-                  Ref: MyappTCP8000TargetGroup
+                  Ref: LaravelTCP8000TargetGroup
           Type: forward
       LoadBalancerArn:
         Ref: LoadBalancer
       Port: 8000
       Protocol: TCP
     Type: AWS::ElasticLoadBalancingV2::Listener
-  MyappTCP8000TargetGroup:
+  LaravelTCP8000TargetGroup:
     Properties:
       Port: 8000
       Protocol: TCP
@@ -320,7 +321,7 @@ Resources:
       TargetType: ip
       VpcId: vpc-0def533f2315e89fe
     Type: AWS::ElasticLoadBalancingV2::TargetGroup
-  MyappTaskDefinition:
+  LaravelTaskDefinition:
     Properties:
       ContainerDefinitions:
         - Command:
@@ -336,12 +337,12 @@ Resources:
               awslogs-region:
                 Ref: AWS::Region
               awslogs-stream-prefix: auth-api
-          Name: Myapp_ResolvConf_InitContainer
+          Name: Laravel_ResolvConf_InitContainer
         - DependsOn:
             - Condition: SUCCESS
-              ContainerName: Myapp_ResolvConf_InitContainer
+              ContainerName: Laravel_ResolvConf_InitContainer
           Essential: true
-          Image: docker.io/9wimu9/auth-api-myapp2:latest@sha256:7df90d61b360ff09cbbd7247b6662662868430ca5b977881ebd2f38474d8648e
+          Image: docker.io/9wimu9/auth-api-laravel:latest@sha256:a62b01b13762eedf661cebf06202ab9d89dda857c3a1fbd6ec17dfe96bc1a454
           LinuxParameters: {}
           LogConfiguration:
             LogDriver: awslogs
@@ -351,21 +352,23 @@ Resources:
               awslogs-region:
                 Ref: AWS::Region
               awslogs-stream-prefix: auth-api
-          Name: myapp
+          Name: laravel
           PortMappings:
             - ContainerPort: 8000
               HostPort: 8000
               Protocol: tcp
       Cpu: "256"
       ExecutionRoleArn:
-        Ref: MyappTaskExecutionRole
-      Family: auth-api-myapp
+        Ref: LaravelTaskExecutionRole
+      TaskRoleArn:
+        Ref: LaravelTaskExecutionRole
+      Family: auth-api-laravel
       Memory: "512"
       NetworkMode: awsvpc
       RequiresCompatibilities:
         - FARGATE
     Type: AWS::ECS::TaskDefinition
-  MyappTaskExecutionRole:
+  LaravelTaskExecutionRole:
     Properties:
       AssumeRolePolicyDocument:
         Statement:
@@ -384,5 +387,5 @@ Resources:
         - Key: com.docker.compose.project
           Value: auth-api
         - Key: com.docker.compose.service
-          Value: myapp
+          Value: laravel
     Type: AWS::IAM::Role
