@@ -4,7 +4,7 @@ Resources:
     Properties:
       Description: Service Map for Docker Compose project auth-api
       Name: auth-api.local
-      Vpc: vpc-0def533f2315e89fe
+      Vpc: vpc-05128154eae11eb85
     Type: AWS::ServiceDiscovery::PrivateDnsNamespace
   Cluster:
     Properties:
@@ -41,7 +41,7 @@ Resources:
           Value: auth-api
         - Key: com.docker.compose.network
           Value: auth-api_default
-      VpcId: vpc-0def533f2315e89fe
+      VpcId: vpc-05128154eae11eb85
     Type: AWS::EC2::SecurityGroup
   DefaultNetworkIngress:
     Properties:
@@ -59,12 +59,12 @@ Resources:
           Value: "true"
       Scheme: internet-facing
       Subnets:
-        - subnet-0849b849ea31cdf6e
-        - subnet-04d18faded5ffd463
-        - subnet-0d01464d1b103e490
-        - subnet-02533b792b8a25c63
-        - subnet-0f9ddea6e858210a6
-        - subnet-0d8b8aa7a701c2c21
+        - subnet-0fd38f84bb8195b9c
+        - subnet-03ed8caad94c69579
+        - subnet-05bd3ff91119d7da7
+        - subnet-083fae827b0452a9b
+        - subnet-038ab34f4d88c082e
+        - subnet-0cb85a12a0fdba5b7
       Tags:
         - Key: com.docker.compose.project
           Value: auth-api
@@ -100,12 +100,12 @@ Resources:
           SecurityGroups:
             - Ref: DefaultNetwork
           Subnets:
-            - subnet-0849b849ea31cdf6e
-            - subnet-04d18faded5ffd463
-            - subnet-0d01464d1b103e490
-            - subnet-02533b792b8a25c63
-            - subnet-0f9ddea6e858210a6
-            - subnet-0d8b8aa7a701c2c21
+            - subnet-0fd38f84bb8195b9c
+            - subnet-03ed8caad94c69579
+            - subnet-05bd3ff91119d7da7
+            - subnet-083fae827b0452a9b
+            - subnet-038ab34f4d88c082e
+            - subnet-0cb85a12a0fdba5b7
       PlatformVersion: 1.4.0
       PropagateTags: SERVICE
       SchedulingStrategy: REPLICA
@@ -157,7 +157,7 @@ Resources:
         - Key: com.docker.compose.project
           Value: auth-api
       TargetType: ip
-      VpcId: vpc-0def533f2315e89fe
+      VpcId: vpc-05128154eae11eb85
     Type: AWS::ElasticLoadBalancingV2::TargetGroup
   MariadbTaskDefinition:
     Properties:
@@ -262,12 +262,12 @@ Resources:
           SecurityGroups:
             - Ref: DefaultNetwork
           Subnets:
-            - subnet-0849b849ea31cdf6e
-            - subnet-04d18faded5ffd463
-            - subnet-0d01464d1b103e490
-            - subnet-02533b792b8a25c63
-            - subnet-0f9ddea6e858210a6
-            - subnet-0d8b8aa7a701c2c21
+            - subnet-0fd38f84bb8195b9c
+            - subnet-03ed8caad94c69579
+            - subnet-05bd3ff91119d7da7
+            - subnet-083fae827b0452a9b
+            - subnet-038ab34f4d88c082e
+            - subnet-0cb85a12a0fdba5b7
       PlatformVersion: 1.4.0
       PropagateTags: SERVICE
       SchedulingStrategy: REPLICA
@@ -319,7 +319,7 @@ Resources:
         - Key: com.docker.compose.project
           Value: auth-api
       TargetType: ip
-      VpcId: vpc-0def533f2315e89fe
+      VpcId: vpc-05128154eae11eb85
     Type: AWS::ElasticLoadBalancingV2::TargetGroup
   LaravelTaskDefinition:
     Properties:
@@ -382,10 +382,30 @@ Resources:
       ManagedPolicyArns:
         - arn:aws:iam::aws:policy/service-role/AmazonECSTaskExecutionRolePolicy
         - arn:aws:iam::aws:policy/AmazonEC2ContainerRegistryReadOnly
-        - arn:aws:iam::931838733925:policy/ecs-exec-required-iam-policy
+        - ref: EcsExecRequiredIamPolicy
       Tags:
         - Key: com.docker.compose.project
           Value: auth-api
         - Key: com.docker.compose.service
           Value: laravel
     Type: AWS::IAM::Role
+  EcsExecRequiredIamPolicy:
+    Type: AWS::IAM::Policy
+    Properties:
+      PolicyName: ecs-exec-required-iam-policy # (required) give a name to this policy
+      PolicyDocument: {
+        "Version": "2012-10-17",
+        "Statement": [
+          {
+            "Effect": "Allow",
+            "Action": [
+              "ssmmessages:CreateControlChannel",
+              "ssmmessages:CreateDataChannel",
+              "ssmmessages:OpenControlChannel",
+              "ssmmessages:OpenDataChannel"
+            ],
+            "Resource": "*"
+          }
+        ]
+      }
+
